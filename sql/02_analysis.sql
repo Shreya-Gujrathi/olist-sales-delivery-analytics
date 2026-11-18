@@ -79,3 +79,29 @@ SELECT COUNT(*) AS bad_reviews,
 FROM olist.orders_clean oc
 JOIN olist.order_reviews r ON r.order_id = oc.order_id
 WHERE r.review_score <= 2;
+
+-- Q8. Repeat customers (use customer_unique_id, not customer_id)
+SELECT COUNT(*) AS customers,
+       SUM(order_cnt > 1) AS repeat_customers,
+       ROUND(SUM(order_cnt > 1) * 100 / COUNT(*), 2) AS repeat_pct
+FROM (
+  SELECT c.customer_unique_id,
+         COUNT(DISTINCT oc.order_id) AS order_cnt
+  FROM olist.orders_clean oc
+  JOIN olist.customers c ON c.customer_id = oc.customer_id
+  GROUP BY c.customer_unique_id
+) x;
+
+-- Q9. Sellers with the highest late delivery % (min 50 orders)
+SELECT oi.seller_id,
+       COUNT(DISTINCT oc.order_id) AS orders,
+       ROUND(SUM(oi.price), 2) AS revenue,
+       ROUND(AVG(oc.is_late) * 100, 1) AS late_pct,
+       ROUND(AVG(r.review_score), 2) AS avg_score
+FROM olist.order_items oi
+JOIN olist.orders_clean oc ON oc.order_id = oi.order_id
+LEFT JOIN olist.order_reviews r ON r.order_id = oc.order_id
+GROUP BY oi.seller_id
+HAVING orders >= 50
+ORDER BY late_pct DESC
+LIMIT 10;
