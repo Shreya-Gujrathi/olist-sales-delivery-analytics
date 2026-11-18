@@ -25,3 +25,29 @@ SELECT order_month,
              / LAG(revenue) OVER (ORDER BY order_month) * 100, 1) AS mom_growth_pct
 FROM monthly
 ORDER BY order_month;
+
+-- Q3. Top 10 categories by revenue, with revenue share
+SELECT COALESCE(t.product_category_name_english, 'unknown') AS category,
+       COUNT(DISTINCT oi.order_id) AS orders,
+       ROUND(SUM(oi.price), 2) AS revenue,
+       ROUND(SUM(oi.price) * 100 / SUM(SUM(oi.price)) OVER (), 1) AS revenue_pct
+FROM olist.order_items oi
+JOIN olist.orders_clean oc ON oc.order_id = oi.order_id
+LEFT JOIN olist.products p ON p.product_id = oi.product_id
+LEFT JOIN olist.category_translation t ON t.product_category_name = p.product_category_name
+GROUP BY category
+ORDER BY revenue DESC
+LIMIT 10;
+
+-- Q4. State-wise performance: revenue, delivery time, late %, freight
+SELECT c.customer_state,
+       COUNT(DISTINCT oc.order_id) AS orders,
+       ROUND(SUM(oi.price), 2) AS revenue,
+       ROUND(AVG(oc.delivery_days), 1) AS avg_delivery_days,
+       ROUND(AVG(oc.is_late) * 100, 1) AS late_pct,
+       ROUND(AVG(oi.freight_value), 2) AS avg_freight
+FROM olist.orders_clean oc
+JOIN olist.customers c ON c.customer_id = oc.customer_id
+JOIN olist.order_items oi ON oi.order_id = oc.order_id
+GROUP BY c.customer_state
+ORDER BY revenue DESC;
