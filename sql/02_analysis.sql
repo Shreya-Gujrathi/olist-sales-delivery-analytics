@@ -51,3 +51,31 @@ JOIN olist.customers c ON c.customer_id = oc.customer_id
 JOIN olist.order_items oi ON oi.order_id = oc.order_id
 GROUP BY c.customer_state
 ORDER BY revenue DESC;
+
+-- Q5. Late vs on-time: average review score
+SELECT oc.is_late,
+       COUNT(*) AS reviews,
+       ROUND(AVG(r.review_score), 2) AS avg_score
+FROM olist.orders_clean oc
+JOIN olist.order_reviews r ON r.order_id = oc.order_id
+GROUP BY oc.is_late;
+
+-- Q6. Review score by delivery time bucket
+SELECT CASE WHEN oc.delivery_days <= 7 THEN '1) 0-7 days'
+            WHEN oc.delivery_days <= 14 THEN '2) 8-14 days'
+            WHEN oc.delivery_days <= 21 THEN '3) 15-21 days'
+            ELSE '4) 22+ days' END AS delivery_bucket,
+       COUNT(*) AS reviews,
+       ROUND(AVG(r.review_score), 2) AS avg_score
+FROM olist.orders_clean oc
+JOIN olist.order_reviews r ON r.order_id = oc.order_id
+GROUP BY delivery_bucket
+ORDER BY delivery_bucket;
+
+-- Q7. Share of bad reviews (1-2 stars) that come from late orders
+SELECT COUNT(*) AS bad_reviews,
+       SUM(oc.is_late) AS from_late_orders,
+       ROUND(SUM(oc.is_late) * 100 / COUNT(*), 1) AS late_share_of_bad_reviews
+FROM olist.orders_clean oc
+JOIN olist.order_reviews r ON r.order_id = oc.order_id
+WHERE r.review_score <= 2;
